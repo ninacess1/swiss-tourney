@@ -1,0 +1,37 @@
+/* assets/css/style.css */
+
+.swiss-register {
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  padding: 15px;
+  max-width: 400px;
+  margin: 1em auto;
+  border-radius: 6px;
+}
+
+.swiss-register input,
+.swiss-register button {
+  width: 100%;
+  padding: 8px;
+  margin: 5px 0;
+}
+
+.swiss-standings, .swiss-pairings {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+}
+
+.swiss-standings th, .swiss-standings td,
+.swiss-pairings th, .swiss-pairings td {
+  border: 1px solid #ddd;
+  padding: 6px;
+  text-align: center;
+}
+
+/* Hide Table column in round pairings */
+.swiss-pairings th:first-child,
+.swiss-pairings td:first-child {
+  display: none;
+}
+
