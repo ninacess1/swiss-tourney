@@ -77,13 +77,13 @@ function swiss_tourney_admin_page() {
     echo '<h2>Existing Tournaments</h2><table class="widefat"><tr><th>ID</th><th>Name</th><th>Rounds</th><th>Actions</th></tr>';
     foreach ($tournaments as $t) {
         echo '<tr>';
-        echo '<td>'.$t['id'].'</td>';
-        echo '<td>'.$t['title'].($active===$t['id']?' <strong>(Active)</strong>':'').'</td>';
-        echo '<td>'.$t['total_rounds'].'</td>';
+        echo '<td>'.esc_html($t['id']).'</td>';
+        echo '<td>'.esc_html($t['title']).($active===$t['id']?' <strong>(Active)</strong>':'').'</td>';
+        echo '<td>'.esc_html($t['total_rounds']).'</td>';
         echo '<td>
-            <a class="button" href="'.wp_nonce_url('?page=swiss-tourney&set_active='.$t['id'],'swiss_set_active').'">Set Active</a>
-            <a class="button button-danger" href="'.wp_nonce_url('?page=swiss-tourney&delete_tournament='.$t['id'],'swiss_delete_tournament').'">Delete</a>
-            <a class="button" href="?page=swiss-tourney&manage='.$t['id'].'">Manage Rounds</a>
+            <a class="button" href="' . esc_url(wp_nonce_url('?page=swiss-tourney&set_active=' . intval($t['id']),'swiss_set_active')) . '">Set Active</a>
+            <a class="button button-danger" href="'.esc_url(wp_nonce_url('?page=swiss-tourney&delete_tournament='.intval($t['id']),'swiss_delete_tournament')).'">Delete</a>
+            <a class="button" href="?page=swiss-tourney&manage='.intval($t['id']).'">Manage Rounds</a>
         </td>';
         echo '</tr>';
     }
@@ -115,9 +115,9 @@ function swiss_tourney_admin_page() {
         )));
         $next = $current + 1;
 
-        echo "<h2>Manage Tournament #$tid</h2>";
-        echo "<p><strong>Current Round:</strong> ".($current ?: 'None')."</p>";
-        echo "<p><strong>Next Round:</strong> $next</p>";
+        echo '<h2>Manage Tournament #' . esc_html( intval( $tid ) ) . '</h2>';
+        echo '<p><strong>Current Round:</strong> ' . esc_html( $current ? intval($current) : 'None' ) . '</p>';
+        echo '<p><strong>Next Round:</strong> ' . esc_html( intval($next) ) . '</p>';
 
         // ====================
         // Countdown Controls
@@ -193,16 +193,18 @@ function swiss_tourney_admin_page() {
 
             echo '<tr>';
             echo '<td>' . esc_html($t->name) . '</td>';
-            echo "<td>{$dci}</td>";
-            echo "<td>{$status}</td>";
-            echo "<td>{$wld}</td>";
-            echo "<td>{$pts}</td>";
+            echo '<td>' . esc_html( $dci ) . '</td>';
+            echo '<td>' . wp_kses_post( $status ) . '</td>';
+            echo '<td>' . esc_html( $wld ) . '</td>';
+            echo '<td>' . esc_html( $pts ) . '</td>';
             echo '<td>
                 <form method="post" style="margin:0;">';
             wp_nonce_field('swiss_manage_players');
             echo '<input type="hidden" name="player_id" value="'.intval($p['id']).'">';
-            echo '<input type="hidden" name="drop" value="'.$next_drop.'">';
-            echo '<button class="button" name="toggle_drop_player" value="1">'.$btn_label.'</button>
+            echo '<input type="hidden" name="drop" value="' . esc_attr( $next_drop ) . '">';
+            echo '<button class="button" name="toggle_drop_player" value="1">'
+                . esc_html( $btn_label )
+                . '</button>
                 </form>
             </td>';
             echo '</tr>';
@@ -277,8 +279,9 @@ if ($current_round_for_results <= 0) {
 
         echo '<tr>';
         echo '<td>'.intval($m['table_no']).'</td>';
-        echo '<td>'.$a.'</td>';
-        echo '<td>'.$b.'</td>';
+        echo '<td>' . esc_html( $a ) . '</td>';
+        echo '<td>' . esc_html( $b ) . '</td>';
+
 
         if (!$m['player_b_id']) {
             echo '<td>BYE (auto win for A)</td>';
@@ -329,7 +332,9 @@ if ($current_round_for_results <= 0) {
 
         echo '<form method="post">';
         wp_nonce_field('swiss_manage_round');
-        echo '<input type="number" name="round_number" value="'.$next.'" required>';
+        echo '<input type="number" name="round_number" value="' 
+            . esc_attr( intval( $next ) ) 
+            . '" required>';
         echo '<button type="submit" name="lock_round" class="button-primary">Lock & Generate Pairings</button>';
         echo '</form>';
     }

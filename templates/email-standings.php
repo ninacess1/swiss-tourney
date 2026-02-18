@@ -20,12 +20,29 @@
       <tbody>
       <?php foreach ($standings as $rank => $p): ?>
         <tr>
-          <td style="border: 1px solid #ccc; padding: 5px;"><?php echo $rank+1; ?></td>
-          <td style="border: 1px solid #ccc; padding: 5px;"><?php echo esc_html($p['first_name'].' '.$p['last_name']); ?></td>
-          <td style="border: 1px solid #ccc; padding: 5px;"><?php echo $p['wins']; ?></td>
-          <td style="border: 1px solid #ccc; padding: 5px;"><?php echo $p['losses']; ?></td>
-          <td style="border: 1px solid #ccc; padding: 5px;"><?php echo $p['draws']; ?></td>
-          <td style="border: 1px solid #ccc; padding: 5px;"><?php echo $p['points']; ?></td>
+          <td style="border: 1px solid #ccc; padding: 5px;">
+            <?php echo esc_html( intval( $rank ) + 1 ); ?>
+          </td>
+
+          <td style="border: 1px solid #ccc; padding: 5px;">
+            <?php echo esc_html( $p['first_name'] . ' ' . $p['last_name'] ); ?>
+          </td>
+
+          <td style="border: 1px solid #ccc; padding: 5px;">
+            <?php echo esc_html( intval( $p['wins'] ) ); ?>
+          </td>
+
+          <td style="border: 1px solid #ccc; padding: 5px;">
+            <?php echo esc_html( intval( $p['losses'] ) ); ?>
+          </td>
+
+          <td style="border: 1px solid #ccc; padding: 5px;">
+            <?php echo esc_html( intval( $p['draws'] ) ); ?>
+          </td>
+
+          <td style="border: 1px solid #ccc; padding: 5px;">
+            <?php echo esc_html( intval( $p['points'] ) ); ?>
+          </td>
         </tr>
       <?php endforeach; ?>
       </tbody>

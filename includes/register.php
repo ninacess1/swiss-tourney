@@ -131,7 +131,7 @@ add_shortcode('swiss_register', function ($atts) {
     }
 
     ob_start();
-    echo $message;
+    echo wp_kses_post( $message );
 
     // Show form only if registration open
     if ($reg_open) {
@@ -161,7 +161,7 @@ add_shortcode('swiss_register', function ($atts) {
             if ($name === '') $name = '(No name)';
             $line = esc_html($name) . ' — ID: <strong>' . esc_html($p->dci) . '</strong>';
             if (intval($p->dropped) === 1) $line .= ' <strong>(Dropped)</strong>';
-            echo '<li>' . $line . '</li>';
+            echo '<li>' . esc_html( $line ) . '</li>';
         }
         echo '</ul>';
     }
