@@ -37,7 +37,9 @@ add_shortcode('swiss_register', function ($atts) {
 
     // Success message after redirect (prevents duplicate insert on refresh)
     if (isset($_GET['swiss_registered']) && $_GET['swiss_registered'] === '1') {
-        $pid = sanitize_text_field($_GET['pid'] ?? '');
+        $pid = isset($_GET['pid'])
+                ? sanitize_text_field( wp_unslash( $_GET['pid'] ) )
+                : '';
         $message = '<p class="swiss-success">Registered successfully!'
             . ($pid ? ' Your Player ID: <strong>' . esc_html($pid) . '</strong>' : '')
             . '</p>';
@@ -55,11 +57,15 @@ add_shortcode('swiss_register', function ($atts) {
     }
 
     // Handle form submit
+    $nonce = isset($_POST['swiss_register_nonce'])
+    ? sanitize_text_field( wp_unslash($_POST['swiss_register_nonce']) )
+    : '';
+
     if (
         $_SERVER['REQUEST_METHOD'] === 'POST'
-        && isset($_POST['swiss_register_submit'])
-        && isset($_POST['swiss_register_nonce'])
-        && wp_verify_nonce($_POST['swiss_register_nonce'], 'swiss_register')
+            && isset($_POST['swiss_register_submit'])
+            && ! empty($nonce)
+            && wp_verify_nonce($nonce, 'swiss_register')
 
     ) {
           $post = wp_unslash($_POST);
@@ -67,13 +73,14 @@ add_shortcode('swiss_register', function ($atts) {
         if (!$reg_open) {
             $message = '<p class="swiss-error">Registration is locked (tournament in progress).</p>';
         } else {
-            $post  = wp_unslash($_POST);
+            $post = wp_unslash($_POST);
 
-            $first = sanitize_text_field($_POST['first_name'] ?? '');
-            $last  = sanitize_text_field($_POST['last_name'] ?? '');
-            $dci   = sanitize_text_field($_POST['dci'] ?? '');
+            $first = isset($post['first_name']) ? sanitize_text_field($post['first_name']) : '';
+            $last  = isset($post['last_name'])  ? sanitize_text_field($post['last_name'])  : '';
+            $dci   = isset($post['dci'])        ? sanitize_text_field($post['dci'])        : '';
 
-            $email = sanitize_email($_POST['email'] ?? '');
+            $email = isset($post['email']) ? sanitize_email($post['email']) : '';
+            
             if ($email && !is_email($email)) {
                 $email = '';
             }
@@ -112,15 +119,26 @@ add_shortcode('swiss_register', function ($atts) {
 
                         if ($ok) {
                             // ✅ Redirect to SAME PAGE (no referer dependency)
-                            $current_url = home_url(add_query_arg([], $_SERVER['REQUEST_URI']));
-                            $current_url = remove_query_arg(['swiss_registered','pid'], $current_url);
-                            $current_url = add_query_arg([
-                                'swiss_registered' => '1',
-                                'pid' => $dci,
-                            ], $current_url);
+                        $request_uri = isset($_SERVER['REQUEST_URI'])
+                            ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) )
+                            : '';
 
-                            wp_safe_redirect($current_url);
-                            exit;
+                        $base_url = esc_url_raw( home_url( $request_uri ) );
+
+                        // remove old flags
+                        $base_url = remove_query_arg(array('swiss_registered','pid'), $base_url);
+
+                        // add new flags (values are safe here: literal + sanitized $dci)
+                        $current_url = add_query_arg(
+                            array(
+                                'swiss_registered' => '1',
+                                'pid'              => $dci,
+                            ),
+                            $base_url
+                        );
+
+                        wp_safe_redirect( esc_url_raw($current_url) );
+                        exit;
                         } else {
                             $message = '<p class="swiss-error">Registration failed. Please try again.</p>';
                         }

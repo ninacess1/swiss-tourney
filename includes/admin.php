@@ -21,7 +21,8 @@ function swiss_tourney_admin_page() {
 
     // Handle Set Active
     if (isset($_GET['set_active']) && check_admin_referer('swiss_set_active')) {
-        update_option('swiss_tourney_active_tournament_id', intval($_GET['set_active']));
+        $set_active = absint( wp_unslash($_GET['set_active']) );
+        update_option('swiss_tourney_active_tournament_id', $set_active);
         echo '<div class="updated"><p>Active tournament set.</p></div>';
     }
 
@@ -31,7 +32,7 @@ function swiss_tourney_admin_page() {
 
 
 
-        $del = (int) wp_unslash($_GET['delete_tournament']);
+        $del = absint( wp_unslash($_GET['delete_tournament']) );
 
         $wpdb->delete($wpdb->prefix.'swiss_pairings', ['tournament_id'=>$del]);
         $wpdb->delete($wpdb->prefix.'swiss_players',  ['tournament_id'=>$del]);
@@ -52,11 +53,21 @@ function swiss_tourney_admin_page() {
 
     // Create Tournament
     if (isset($_POST['create_tournament']) && check_admin_referer('swiss_create_tournament')) {
+
+        $tournament_name = isset($_POST['tournament_name'])
+            ? sanitize_text_field( wp_unslash($_POST['tournament_name']) )
+            : '';
+
+        $total_rounds = isset($_POST['total_rounds'])
+            ? absint( wp_unslash($_POST['total_rounds']) )
+            : 0;
+
         $wpdb->insert($wpdb->prefix.'swiss_tournaments', [
-            'title'        => sanitize_text_field($_POST['tournament_name']),
-            'total_rounds' => intval($_POST['total_rounds']),
+            'title'        => $tournament_name,
+            'total_rounds' => $total_rounds,
             'created_at'   => current_time('mysql')
         ]);
+
         update_option('swiss_tourney_active_tournament_id', $wpdb->insert_id);
         echo '<div class="updated"><p>Tournament created and set active.</p></div>';
     }
@@ -91,14 +102,17 @@ function swiss_tourney_admin_page() {
 
     // Manage rounds
     if (isset($_GET['manage'])) {
-        $tid = intval($_GET['manage']);
+        $tid = absint( wp_unslash($_GET['manage']) );
 
     // Handle Drop/Undrop actions
     if (isset($_POST['toggle_drop_player']) && isset($_POST['player_id']) && 
         check_admin_referer('swiss_manage_players')
     ) {
-        $pid = intval($_POST['player_id']);
-        $drop = intval($_POST['drop']) === 1 ? 1 : 0;
+        $post = wp_unslash($_POST);
+
+        $pid  = isset($post['player_id']) ? absint($post['player_id']) : 0;
+        $drop = isset($post['drop']) ? absint($post['drop']) : 0;
+        $drop = ($drop === 1) ? 1 : 0;
 
         $wpdb->update(
             $wpdb->prefix.'swiss_players',
@@ -106,7 +120,7 @@ function swiss_tourney_admin_page() {
             ['id' => $pid, 'tournament_id' => $tid]
         );
 
-        echo '<div class="updated"><p>Player status updated.</p></div>';
+        echo '<div class="updated"><p>' . esc_html__('Player status updated.', 'swiss-tourney') . '</p></div>';
     }
 
         // then current/next round Logic continues...
@@ -130,18 +144,33 @@ function swiss_tourney_admin_page() {
 
             $post = wp_unslash($_POST);
 
-            $minutes = max(1, intval($_POST['round_minutes'] ?? 50));
+            $minutes = isset($post['round_minutes']) ? absint($post['round_minutes']) : 50;
+            $minutes = max(1, $minutes);
             update_option("swiss_round_minutes_{$tid}", $minutes);
 
-            $action = sanitize_text_field($_POST['timer_action']);
-
+            $action = isset($post['timer_action']) ? sanitize_text_field($post['timer_action']) : '';
+            
+            $allowed_actions = array('start', 'stop', 'reset');
+            $action = in_array($action, $allowed_actions, true) ? $action : '';
+        
         if ($action === 'start' || $action === 'reset') {
+
             $end_time = time() + ($minutes * 60);
             update_option("swiss_tourney_round_end_{$tid}", $end_time);
-            echo '<div class="updated"><p>Countdown ' . ($action === 'reset' ? 'reset' : 'started') . '.</p></div>';
+
+            $status = ($action === 'reset') ? 'reset' : 'started';
+
+            echo '<div class="updated"><p>' .
+                esc_html( 'Countdown ' . $status . '.' ) .
+                '</p></div>';
+
         } elseif ($action === 'stop') {
+
             update_option("swiss_tourney_round_end_{$tid}", 0);
-            echo '<div class="updated"><p>Countdown stopped.</p></div>';
+
+            echo '<div class="updated"><p>' .
+                esc_html__('Countdown stopped.', 'swiss-tourney') .
+                '</p></div>';
         }
     }
 
@@ -192,7 +221,7 @@ function swiss_tourney_admin_page() {
             $btn_label = intval($p['dropped']) ? 'Undrop' : 'Drop';
 
             echo '<tr>';
-            echo '<td>' . esc_html($t->name) . '</td>';
+            echo '<td>' . esc_html($name) . '</td>';
             echo '<td>' . esc_html( $dci ) . '</td>';
             echo '<td>' . wp_kses_post( $status ) . '</td>';
             echo '<td>' . esc_html( $wld ) . '</td>';
@@ -218,22 +247,32 @@ function swiss_tourney_admin_page() {
 // Save match results (Win/Loss/Draw)
 // --------------------
 if (isset($_POST['save_results']) && check_admin_referer('swiss_save_results')) {
-    foreach (($_POST['result'] ?? []) as $pairing_id => $res) {
-        $pairing_id = intval($pairing_id);
-        $res = in_array($res, ['A','B','D',''], true) ? $res : '';
+
+    if ( ! current_user_can('manage_options') ) {
+        wp_die(esc_html__('You do not have permission to do that.', 'swiss-tourney'));
+    }
+
+    $post    = wp_unslash($_POST);
+    $results = (isset($post['result']) && is_array($post['result'])) ? $post['result'] : array();
+
+    foreach ($results as $pairing_id => $res) {
+        $pairing_id = absint($pairing_id);
+
+        $res = sanitize_text_field($res);
+        $res = in_array($res, array('A','B','D',''), true) ? $res : '';
 
         $wpdb->update(
             $wpdb->prefix.'swiss_pairings',
-            ['result' => $res],
-            ['id' => $pairing_id, 'tournament_id' => $tid]
+            array('result' => $res),
+            array('id' => $pairing_id, 'tournament_id' => $tid)
         );
     }
 
-    // IMPORTANT: requires swiss_recalculate_standings($tid) in includes/pairing.php
     swiss_recalculate_standings($tid);
 
-    echo '<div class="updated"><p>Results saved. Standings updated.</p></div>';
+    echo '<div class="updated"><p>' . esc_html__('Results saved. Standings updated.', 'swiss-tourney') . '</p></div>';
 }
+
 // --------------------
 // Pairings display (current round) + result entry
 // --------------------
@@ -314,7 +353,7 @@ if ($current_round_for_results <= 0) {
     }
 
     $post = wp_unslash($_POST);
-    $round_number = isset($post['round_number']) ? (int) $post['round_number'] : 0;
+    $round_number = isset($post['round_number']) ? absint($post['round_number']) : 0;
 
     // ✅ Ensure frontend uses the same tournament you’re managing
     update_option('swiss_tourney_active_tournament_id', $tid);
@@ -323,9 +362,9 @@ if ($current_round_for_results <= 0) {
     update_option("swiss_reg_open_{$tid}", 0);
 
     if (!swiss_lock_round($tid, $round_number)) {
-        echo '<div class="error"><p>Round already exists.</p></div>';
+        echo '<div class="error"><p>' . esc_html__('Round already exists.', 'swiss-tourney') . '</p></div>';
     } else {
-        echo '<div class="updated"><p>Round locked. Pairings generated.</p></div>';
+        echo '<div class="updated"><p>' . esc_html__('Round locked. Pairings generated.', 'swiss-tourney') . '</p></div>';
     }
 }
 

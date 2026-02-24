@@ -3,7 +3,7 @@
 Plugin Name: Swiss Tourney
 Plugin URI:  https://expandmore.xyz/swiss-tourney-wordpress-plugin/
 Description: Swiss-style tournament manager with registration, pairings, standings, countdown, and email reminders.
-Version:     0.3.4
+Version:     0.3.5
 Author:      Ninacess
 Author URI:  https://expandmore.xyz/
 License:     GPLv2 or later
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) exit;
 require_once plugin_dir_path(__FILE__) . 'includes/db.php';
 
 // Bump this when you change table schemas.
-define('SWISS_TOURNEY_DB_VERSION', '0.3.4');
+define('SWISS_TOURNEY_DB_VERSION', '0.3.5');
 
 // Activation Hook (ONLY ONCE)
 register_activation_hook(__FILE__, 'swiss_tourney_install');
